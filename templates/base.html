@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7f3">
+  <title>{% block title %}Biblioteca escolar{% endblock %} · Biblioteca</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="{{ url_for('index') }}">
+      <span class="brand-mark" aria-hidden="true">B</span>
+      <span><strong>Biblioteca</strong><small>Gestión de recursos escolares</small></span>
+    </a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="main-nav">
+      <span class="sr-only">Abrir menú</span><span aria-hidden="true">☰</span>
+    </button>
+    <nav class="main-nav" id="main-nav" aria-label="Navegación principal">
+      <a href="{{ url_for('index') }}">Inicio</a>
+      <a href="{{ url_for('new_loan') }}">Nueva solicitud</a>
+      <a href="{{ url_for('inventory') }}">Inventario</a>
+      <a href="{{ url_for('requests_list') }}">Solicitudes</a>
+      <a href="{{ url_for('members') }}">Miembros</a>
+    </nav>
+  </header>
+
+  <main class="page-shell">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-list" aria-live="polite">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <span>Biblioteca escolar</span>
+    <span>Préstamos más simples, recursos mejor organizados.</span>
+  </footer>
+</body>
+</html>

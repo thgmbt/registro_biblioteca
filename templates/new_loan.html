@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Nueva solicitud{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <span class="eyebrow">PRÉSTAMOS</span>
+  <h1>Nueva solicitud</h1>
+  <p>Completa los datos para registrar los materiales. Cada persona puede solicitar hasta 3 objetos.</p>
+</section>
+{% if not members %}
+  <div class="notice">Aún no hay miembros registrados. <a href="{{ url_for('members') }}">Registra un miembro</a> antes de crear una solicitud.</div>
+{% endif %}
+<form class="form-card" method="post" action="{{ url_for('new_loan') }}">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+  <div class="form-section-title"><span>01</span><div><h2>Datos de la persona</h2><p>El ID se entrega al registrar a cada miembro.</p></div></div>
+  <div class="form-grid">
+    <label class="field"><span>ID del miembro <b>*</b></span>
+      <select name="member_id" required {% if not members %}disabled{% endif %}>
+        <option value="">Selecciona un miembro</option>
+        {% for member in members %}<option value="{{ member.id }}">{{ member.id }} · {{ member.name }} ({{ member.role }})</option>{% endfor %}
+      </select>
+    </label>
+    <label class="field"><span>Correo para el recordatorio <b>*</b></span>
+      <input type="email" name="email" placeholder="nombre@colegio.cl" required>
+    </label>
+  </div>
+  <div class="form-section-title section-spaced"><span>02</span><div><h2>Materiales y devolución</h2><p>Selecciona entre 1 y 3 unidades en total.</p></div></div>
+  <div class="loan-items">
+    {% for slot in range(3) %}
+    <div class="loan-item-row">
+      <label class="field item-select"><span>Material {{ slot + 1 }}{% if slot == 0 %} <b>*</b>{% endif %}</span>
+        <select name="item_id" {% if slot == 0 %}required{% endif %}>
+          <option value="">Selecciona un material</option>
+          {% for item in inventory %}
+            {% if item.available > 0 %}
+              <option value="{{ item.id }}">{{ item.name }} · {{ item.available }} {{ item.unit }} disp.</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </label>
+      <label class="field quantity-field"><span>Cantidad</span>
+        <input type="number" name="quantity" min="1" max="3" value="1" inputmode="numeric">
+      </label>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="form-grid due-date-field">
+    <label class="field"><span>Fecha de devolución <b>*</b></span>
+      <input type="date" name="due_date" min="{{ min_due_date }}" required>
+    </label>
+    <p class="field-hint">Enviaremos un recordatorio al correo indicado cuando se acerque esta fecha.</p>
+  </div>
+  <div class="form-actions"><span class="required-note"><b>*</b> Campos obligatorios</span><button class="button button-primary" type="submit" {% if not members or not inventory %}disabled{% endif %}>Guardar solicitud <span aria-hidden="true">→</span></button></div>
+</form>
+{% endblock %}

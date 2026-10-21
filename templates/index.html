@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Inicio{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow">CENTRO DE RECURSOS</span>
+    <h1>Todo en orden.<br><span>Más tiempo para aprender.</span></h1>
+    <p>Solicita materiales de la biblioteca y mantén cada préstamo a la vista, sin papeleo ni hojas perdidas.</p>
+    <a class="button button-light" href="{{ url_for('new_loan') }}">Registrar una solicitud <span aria-hidden="true">→</span></a>
+  </div>
+  <div class="hero-art" aria-hidden="true">
+    <div class="book book-one"></div><div class="book book-two"></div>
+    <div class="book book-three"></div><div class="plant-pot"></div>
+  </div>
+</section>
+
+<section class="stats-grid" aria-label="Resumen de la biblioteca">
+  <article class="stat-card"><span class="stat-icon">▤</span><div><strong>{{ available_items }}</strong><span>unidades disponibles</span></div></article>
+  <article class="stat-card"><span class="stat-icon stat-icon-yellow">↗</span><div><strong>{{ active_loans }}</strong><span>préstamos activos</span></div></article>
+  <article class="stat-card"><span class="stat-icon stat-icon-blue">◎</span><div><strong>{{ member_count }}</strong><span>miembros registrados</span></div></article>
+</section>
+
+<section class="section-heading">
+  <div><span class="eyebrow">ACCESO RÁPIDO</span><h2>¿Qué necesitas hacer?</h2></div>
+</section>
+<section class="action-grid">
+  <a class="action-card" href="{{ url_for('new_loan') }}"><span class="action-icon">＋</span><span><strong>Nueva solicitud</strong><small>Registra materiales y fecha de devolución.</small></span><span class="card-arrow">→</span></a>
+  <a class="action-card" href="{{ url_for('inventory') }}"><span class="action-icon action-icon-yellow">▤</span><span><strong>Revisar inventario</strong><small>Consulta las existencias disponibles.</small></span><span class="card-arrow">→</span></a>
+  <a class="action-card" href="{{ url_for('requests_list') }}"><span class="action-icon action-icon-blue">↗</span><span><strong>Gestionar préstamos</strong><small>Revisa solicitudes y registra devoluciones.</small></span><span class="card-arrow">→</span></a>
+</section>
+{% endblock %}

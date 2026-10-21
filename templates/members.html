@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Miembros{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <span class="eyebrow">COMUNIDAD ESCOLAR</span><h1>Miembros</h1>
+  <p>Registra a estudiantes, docentes y funcionarios. El sistema asigna un ID correlativo desde 001.</p>
+</section>
+<section class="member-layout">
+  <form class="form-card compact-form" method="post" action="{{ url_for('members') }}">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <div class="form-section-title"><span>＋</span><div><h2>Registrar miembro</h2><p>El ID se asignará automáticamente.</p></div></div>
+    <label class="field"><span>Nombre completo <b>*</b></span><input name="name" maxlength="120" required placeholder="Nombre y apellido"></label>
+    <label class="field"><span>Tipo de miembro <b>*</b></span>
+      <select name="role" required><option value="">Selecciona una opción</option><option>Estudiante</option><option>Docente</option><option>Funcionario</option><option>Otro</option></select>
+    </label>
+    <label class="field"><span>Correo electrónico <b>*</b></span><input type="email" name="email" required placeholder="nombre@colegio.cl"></label>
+    <button class="button button-primary full-button" type="submit">Crear miembro <span aria-hidden="true">→</span></button>
+  </form>
+  <section class="table-card member-list-card">
+    <div class="table-toolbar"><div><strong>Directorio</strong><span>{{ members|length }} miembros registrados</span></div><input class="table-search" type="search" placeholder="Buscar miembro…" aria-label="Buscar miembro" data-table-search="members-table"></div>
+    <div class="table-scroll">
+      <table id="members-table"><thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Correo</th></tr></thead>
+        <tbody>{% for member in members %}<tr><td data-label="ID"><span class="member-id">{{ member.id }}</span></td><td data-label="Nombre"><strong>{{ member.name }}</strong></td><td data-label="Tipo">{{ member.role }}</td><td data-label="Correo" class="muted-cell">{{ member.email }}</td></tr>
+        {% else %}<tr><td colspan="4" class="empty-state">Todavía no hay miembros. Registra el primero con el formulario.</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </section>
+</section>
+{% endblock %}

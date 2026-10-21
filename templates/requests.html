@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Solicitudes{% endblock %}
+{% block content %}
+<section class="page-heading heading-with-action">
+  <div><span class="eyebrow">SEGUIMIENTO</span><h1>Solicitudes</h1><p>Consulta los préstamos activos y registra las devoluciones recibidas.</p></div>
+  <a class="button button-primary" href="{{ url_for('new_loan') }}">＋ Nueva solicitud</a>
+</section>
+<section class="loan-list">
+  {% for loan in loans %}
+  <article class="loan-card">
+    <div class="loan-card-top"><div><span class="loan-number">SOLICITUD #{{ loan.id }}</span><span class="status-pill {% if loan.status == 'returned' %}status-returned{% endif %}">{% if loan.status == 'active' %}Activa{% else %}Devuelta{% endif %}</span></div><span class="loan-date">Registrada {{ loan.created_at[:10] }}</span></div>
+    <div class="loan-card-main">
+      <div><span class="detail-label">SOLICITANTE</span><strong>{{ loan.member_name }}</strong><small>ID {{ loan.member_id }} · {{ loan.notification_email }}</small></div>
+      <div><span class="detail-label">MATERIALES</span><strong>{{ loan.materials }}</strong></div>
+      <div><span class="detail-label">DEVOLUCIÓN</span><strong class="{% if loan.status == 'active' and loan.due_date < today %}overdue{% endif %}">{{ loan.due_date }}</strong></div>
+    </div>
+    {% if loan.status == 'active' %}
+    <form method="post" action="{{ url_for('return_loan', loan_id=loan.id) }}" class="return-form" data-confirm="¿Marcar la solicitud #{{ loan.id }} como devuelta?">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <button class="button button-outline" type="submit">Registrar devolución</button>
+    </form>
+    {% endif %}
+  </article>
+  {% else %}
+  <div class="empty-panel"><span aria-hidden="true">▤</span><h2>Aún no hay solicitudes</h2><p>Cuando registres un préstamo, aparecerá aquí.</p><a class="button button-primary" href="{{ url_for('new_loan') }}">Crear solicitud</a></div>
+  {% endfor %}
+</section>
+{% endblock %}

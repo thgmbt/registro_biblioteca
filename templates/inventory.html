@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Inventario{% endblock %}
+{% block content %}
+<section class="page-heading heading-with-action">
+  <div><span class="eyebrow">GESTIÓN DE RECURSOS</span><h1>Inventario</h1><p>Existencias totales y unidades que todavía están disponibles.</p></div>
+  <a class="button button-primary" href="{{ url_for('new_loan') }}">＋ Nueva solicitud</a>
+</section>
+<section class="table-card">
+  <div class="table-toolbar"><div><strong>{{ inventory|length }} materiales</strong><span>Disponibilidad actualizada con los préstamos activos</span></div><input class="table-search" type="search" placeholder="Buscar material…" aria-label="Buscar en el inventario" data-table-search="inventory-table"></div>
+  <div class="table-scroll">
+    <table id="inventory-table">
+      <thead><tr><th>Material</th><th>Categoría</th><th>Modelo / editorial</th><th>Total</th><th>Disponible</th></tr></thead>
+      <tbody>
+        {% for item in inventory %}
+        <tr>
+          <td data-label="Material"><strong>{{ item.name }}</strong></td>
+          <td data-label="Categoría"><span class="category-tag">{{ item.category }}</span></td>
+          <td data-label="Modelo / editorial" class="muted-cell">{{ item.model_or_publisher }}</td>
+          <td data-label="Total">{{ item.total_quantity }} {{ item.unit }}</td>
+          <td data-label="Disponible"><span class="availability {% if item.available == 0 %}availability-empty{% endif %}">{{ item.available }} disp.</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="empty-state">No hay materiales en el inventario.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<p class="page-note">El inventario inicial contiene registros de ejemplo. Actualiza <code>SEED_INVENTORY</code> en <code>app.py</code> con el stock real antes de usar el sistema.</p>
+{% endblock %}
