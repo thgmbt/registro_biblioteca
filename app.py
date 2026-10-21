@@ -5,6 +5,7 @@ import re
 import secrets
 import smtplib
 import sqlite3
+from contextlib import contextmanager
 from datetime import date, datetime, timedelta
 from email.message import EmailMessage
 from pathlib import Path
@@ -53,7 +54,8 @@ CREATE TABLE IF NOT EXISTS members (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     role TEXT NOT NULL,
-    email TEXT NOT NULL
+    email TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1))
 );
 
 CREATE TABLE IF NOT EXISTS loans (
@@ -64,7 +66,8 @@ CREATE TABLE IF NOT EXISTS loans (
     created_at TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'returned')),
     returned_at TEXT,
-    reminder_sent INTEGER NOT NULL DEFAULT 0 CHECK (reminder_sent IN (0, 1))
+    reminder_sent INTEGER NOT NULL DEFAULT 0 CHECK (reminder_sent IN (0, 1)),
+    renewal_count INTEGER NOT NULL DEFAULT 0 CHECK (renewal_count IN (0, 1))
 );
 
 CREATE TABLE IF NOT EXISTS loan_items (
@@ -83,12 +86,36 @@ def connect_db() -> sqlite3.Connection:
     return connection
 
 
+@contextmanager
+def database_connection():
+    connection = connect_db()
+    try:
+        with connection:
+            yield connection
+    finally:
+        connection.close()
+
+
 def initialize_database(database: str) -> None:
     Path(database).parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(database)
     try:
         connection.execute("PRAGMA foreign_keys = ON")
         connection.executescript(SCHEMA)
+        member_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(members)")
+        }
+        if "active" not in member_columns:
+            connection.execute(
+                "ALTER TABLE members ADD COLUMN active INTEGER NOT NULL DEFAULT 1"
+            )
+        loan_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(loans)")
+        }
+        if "renewal_count" not in loan_columns:
+            connection.execute(
+                "ALTER TABLE loans ADD COLUMN renewal_count INTEGER NOT NULL DEFAULT 0"
+            )
         connection.executemany(
             """
             INSERT OR IGNORE INTO inventory
@@ -110,8 +137,17 @@ def csrf_token() -> str:
     return token
 
 
+def is_institutional_email(email: str) -> bool:
+    domain = current_app.config["INSTITUTIONAL_EMAIL_DOMAIN"].strip().lower()
+    return bool(
+        domain
+        and re.fullmatch(r"[^@\s]+@[^@\s]+", email)
+        and email.lower().endswith(domain)
+    )
+
+
 def inventory_with_availability() -> list[sqlite3.Row]:
-    with connect_db() as connection:
+    with database_connection() as connection:
         return connection.execute(
             """
             SELECT i.*,
@@ -140,6 +176,9 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
         MAIL_USERNAME=os.environ.get("MAIL_USERNAME", ""),
         MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD", ""),
         MAIL_FROM=os.environ.get("MAIL_FROM", ""),
+        INSTITUTIONAL_EMAIL_DOMAIN=os.environ.get(
+            "INSTITUTIONAL_EMAIL_DOMAIN", "@colegiosanlorenzo.org"
+        ),
     )
     if test_config:
         app.config.update(test_config)
@@ -159,7 +198,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
 
     @app.get("/")
     def index():
-        with connect_db() as connection:
+        with database_connection() as connection:
             active_loans = connection.execute(
                 "SELECT COUNT(*) FROM loans WHERE status = 'active'"
             ).fetchone()[0]
@@ -184,12 +223,17 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
 
             if not member_id:
                 errors.append("Ingresa el ID de la persona solicitante.")
-            if not email or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
-                errors.append("Ingresa un correo electrónico válido.")
+            if not email or not is_institutional_email(email):
+                errors.append(
+                    "Usa tu correo institucional "
+                    f"({current_app.config['INSTITUTIONAL_EMAIL_DOMAIN']})."
+                )
             try:
                 due_date = date.fromisoformat(due_date_value)
                 if due_date <= date.today():
                     errors.append("La fecha de devolución debe ser posterior a hoy.")
+                elif due_date > date.today() + timedelta(weeks=3):
+                    errors.append("El plazo máximo de préstamo es de 3 semanas.")
             except ValueError:
                 errors.append("Selecciona una fecha de devolución válida.")
 
@@ -225,10 +269,13 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             try:
                 connection.execute("BEGIN IMMEDIATE")
                 member = connection.execute(
-                    "SELECT id FROM members WHERE id = ?", (member_id,)
+                    "SELECT id FROM members WHERE id = ? AND active = 1", (member_id,)
                 ).fetchone()
                 if member is None:
-                    flash("No encontramos ese ID. Verifica el dato o registra primero a la persona.", "error")
+                    flash(
+                        "No encontramos un miembro activo con ese ID. Verifica el dato o registra primero a la persona.",
+                        "error",
+                    )
                     return redirect(url_for("new_loan"))
 
                 for item_id, quantity in selected.items():
@@ -277,20 +324,59 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             finally:
                 connection.close()
 
-        with connect_db() as connection:
+        with database_connection() as connection:
             members = connection.execute(
-                "SELECT id, name, role FROM members ORDER BY name"
+                "SELECT id, name, role FROM members WHERE active = 1 ORDER BY name"
             ).fetchall()
         return render_template(
             "new_loan.html",
             members=members,
             inventory=inventory_with_availability(),
             min_due_date=(date.today() + timedelta(days=1)).isoformat(),
+            max_due_date=(date.today() + timedelta(weeks=3)).isoformat(),
+            email_domain=current_app.config["INSTITUTIONAL_EMAIL_DOMAIN"],
         )
 
-    @app.get("/inventario")
+    @app.route("/inventario", methods=["GET", "POST"])
     def inventory():
-        return render_template("inventory.html", inventory=inventory_with_availability())
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            category = request.form.get("category", "").strip()
+            model_or_publisher = request.form.get("model_or_publisher", "").strip()
+            unit = request.form.get("unit", "").strip()
+            try:
+                quantity = int(request.form.get("quantity", ""))
+            except ValueError:
+                quantity = 0
+            if (
+                not all((name, category, model_or_publisher, unit))
+                or quantity < 1
+                or quantity > 10000
+            ):
+                flash("Completa todos los campos y registra al menos una unidad.", "error")
+                return redirect(url_for("inventory"))
+            try:
+                with database_connection() as connection:
+                    connection.execute(
+                        """
+                        INSERT INTO inventory
+                            (name, category, model_or_publisher, total_quantity, unit)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (name, category, model_or_publisher, quantity, unit),
+                    )
+            except sqlite3.Error:
+                current_app.logger.exception("No se pudo agregar el material al inventario")
+                flash("No se pudo guardar el material. Inténtalo de nuevo.", "error")
+                return redirect(url_for("inventory"))
+            flash(f"Se agregaron {quantity} {unit} de «{name}».", "success")
+            return redirect(url_for("inventory"))
+
+        available_inventory = inventory_with_availability()
+        categories = sorted({item["category"] for item in available_inventory})
+        return render_template(
+            "inventory.html", inventory=available_inventory, categories=categories
+        )
 
     @app.route("/miembros", methods=["GET", "POST"])
     def members():
@@ -298,11 +384,16 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             name = request.form.get("name", "").strip()
             role = request.form.get("role", "").strip()
             email = request.form.get("email", "").strip()
-            if not name or not role or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
-                flash("Completa nombre, tipo de miembro y un correo válido.", "error")
+            if not name or not role or not is_institutional_email(email):
+                flash(
+                    "Completa nombre, tipo de miembro y un correo institucional "
+                    f"({current_app.config['INSTITUTIONAL_EMAIL_DOMAIN']}).",
+                    "error",
+                )
                 return redirect(url_for("members"))
+            email = email.lower()
 
-            with connect_db() as connection:
+            with database_connection() as connection:
                 connection.execute("BEGIN IMMEDIATE")
                 latest_id = connection.execute(
                     "SELECT MAX(CAST(id AS INTEGER)) FROM members"
@@ -315,19 +406,44 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
             flash(f"Miembro registrado con el ID {member_id}.", "success")
             return redirect(url_for("members"))
 
-        with connect_db() as connection:
+        with database_connection() as connection:
             member_list = connection.execute(
-                "SELECT id, name, role, email FROM members ORDER BY CAST(id AS INTEGER)"
+                """
+                SELECT m.id, m.name, m.role, m.email, m.active,
+                    EXISTS(
+                        SELECT 1 FROM loans l
+                        WHERE l.member_id = m.id AND l.status = 'active'
+                    ) AS has_active_loans
+                FROM members m
+                ORDER BY m.active DESC, CAST(m.id AS INTEGER)
+                """
             ).fetchall()
         return render_template("members.html", members=member_list)
 
+    @app.post("/miembros/<member_id>/estado")
+    def toggle_member_status(member_id: str):
+        with database_connection() as connection:
+            cursor = connection.execute(
+                "UPDATE members SET active = 1 - active WHERE id = ?", (member_id,)
+            )
+            member = connection.execute(
+                "SELECT name, active FROM members WHERE id = ?", (member_id,)
+            ).fetchone()
+        if cursor.rowcount == 0 or member is None:
+            flash("No encontramos ese miembro.", "error")
+        elif member["active"]:
+            flash(f"{member['name']} volvió a quedar habilitado.", "success")
+        else:
+            flash(f"{member['name']} fue dado de baja. Su historial se conservó.", "success")
+        return redirect(url_for("members"))
+
     @app.get("/solicitudes")
     def requests_list():
-        with connect_db() as connection:
+        with database_connection() as connection:
             loans = connection.execute(
                 """
                 SELECT l.id, l.member_id, m.name AS member_name, l.notification_email,
-                    l.due_date, l.created_at, l.status,
+                    l.due_date, l.created_at, l.status, l.renewal_count,
                     GROUP_CONCAT(i.name || ' ×' || li.quantity, ', ') AS materials
                 FROM loans AS l
                 JOIN members AS m ON m.id = l.member_id
@@ -342,7 +458,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
 
     @app.post("/solicitudes/<int:loan_id>/devolver")
     def return_loan(loan_id: int):
-        with connect_db() as connection:
+        with database_connection() as connection:
             cursor = connection.execute(
                 """
                 UPDATE loans SET status = 'returned', returned_at = ?
@@ -354,6 +470,35 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
                 flash("La solicitud no existe o ya fue devuelta.", "error")
             else:
                 flash(f"Solicitud #{loan_id} marcada como devuelta.", "success")
+        return redirect(url_for("requests_list"))
+
+    @app.post("/solicitudes/<int:loan_id>/renovar")
+    def renew_loan(loan_id: int):
+        with database_connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            loan = connection.execute(
+                "SELECT due_date, renewal_count FROM loans WHERE id = ? AND status = 'active'",
+                (loan_id,),
+            ).fetchone()
+            if loan is None:
+                flash("La solicitud no existe o ya fue devuelta.", "error")
+            elif loan["renewal_count"] >= 1:
+                flash("Esta solicitud ya utilizó su única renovación.", "error")
+            else:
+                current_due_date = date.fromisoformat(loan["due_date"])
+                new_due_date = max(current_due_date, date.today()) + timedelta(weeks=3)
+                connection.execute(
+                    """
+                    UPDATE loans
+                    SET due_date = ?, renewal_count = renewal_count + 1, reminder_sent = 0
+                    WHERE id = ? AND status = 'active' AND renewal_count = 0
+                    """,
+                    (new_due_date.isoformat(), loan_id),
+                )
+                flash(
+                    f"Solicitud #{loan_id} renovada hasta el {new_due_date.isoformat()}.",
+                    "success",
+                )
         return redirect(url_for("requests_list"))
 
     @app.cli.command("send-reminders")
@@ -370,7 +515,7 @@ def create_app(test_config: dict[str, Any] | None = None) -> Flask:
 
         through_date = (date.today() + timedelta(days=days)).isoformat()
         with app.app_context():
-            with connect_db() as connection:
+            with database_connection() as connection:
                 due_loans = connection.execute(
                     """
                     SELECT l.id, l.notification_email, l.due_date, m.name AS member_name,

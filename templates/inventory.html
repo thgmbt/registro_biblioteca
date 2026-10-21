@@ -5,8 +5,20 @@
   <div><span class="eyebrow">GESTIÓN DE RECURSOS</span><h1>Inventario</h1><p>Existencias totales y unidades que todavía están disponibles.</p></div>
   <a class="button button-primary" href="{{ url_for('new_loan') }}">＋ Nueva solicitud</a>
 </section>
+<details class="form-card inventory-add">
+  <summary><span class="add-summary-icon">＋</span><span><strong>Agregar materiales al inventario</strong><small>Registra nuevos libros, equipos o recursos didácticos.</small></span></summary>
+  <form method="post" action="{{ url_for('inventory') }}" class="inventory-add-form">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <label class="field"><span>Nombre del material <b>*</b></span><input name="name" maxlength="120" required placeholder="Ej. Atlas escolar"></label>
+    <label class="field"><span>Categoría <b>*</b></span><input name="category" maxlength="60" required list="inventory-categories" placeholder="Libro, Tecnología…"><datalist id="inventory-categories">{% for category in categories %}<option value="{{ category }}">{% endfor %}</datalist></label>
+    <label class="field"><span>Modelo / editorial <b>*</b></span><input name="model_or_publisher" maxlength="160" required placeholder="Editorial o referencia"></label>
+    <label class="field"><span>Cantidad <b>*</b></span><input name="quantity" type="number" min="1" max="10000" required placeholder="1"></label>
+    <label class="field"><span>Unidad <b>*</b></span><input name="unit" maxlength="30" required placeholder="unidades, ejemplares, sets"></label>
+    <button class="button button-primary inventory-add-submit" type="submit">Agregar al inventario <span aria-hidden="true">→</span></button>
+  </form>
+</details>
 <section class="table-card">
-  <div class="table-toolbar"><div><strong>{{ inventory|length }} materiales</strong><span>Disponibilidad actualizada con los préstamos activos</span></div><input class="table-search" type="search" placeholder="Buscar material…" aria-label="Buscar en el inventario" data-table-search="inventory-table"></div>
+  <div class="table-toolbar"><div><strong>{{ inventory|length }} materiales</strong><span>Disponibilidad actualizada con los préstamos activos</span></div><div class="inventory-filters"><select class="table-search category-filter" aria-label="Filtrar por categoría" data-category-filter="inventory-table"><option value="">Todas las categorías</option>{% for category in categories %}<option value="{{ category|lower }}">{{ category }}</option>{% endfor %}</select><input class="table-search" type="search" placeholder="Buscar material…" aria-label="Buscar en el inventario" data-table-search="inventory-table"></div></div>
   <div class="table-scroll">
     <table id="inventory-table">
       <thead><tr><th>Material</th><th>Categoría</th><th>Modelo / editorial</th><th>Total</th><th>Disponible</th></tr></thead>
@@ -14,7 +26,7 @@
         {% for item in inventory %}
         <tr>
           <td data-label="Material"><strong>{{ item.name }}</strong></td>
-          <td data-label="Categoría"><span class="category-tag">{{ item.category }}</span></td>
+          <td data-label="Categoría" data-category="{{ item.category|lower }}"><span class="category-tag">{{ item.category }}</span></td>
           <td data-label="Modelo / editorial" class="muted-cell">{{ item.model_or_publisher }}</td>
           <td data-label="Total">{{ item.total_quantity }} {{ item.unit }}</td>
           <td data-label="Disponible"><span class="availability {% if item.available == 0 %}availability-empty{% endif %}">{{ item.available }} disp.</span></td>

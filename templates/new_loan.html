@@ -4,7 +4,7 @@
 <section class="page-heading">
   <span class="eyebrow">PRÉSTAMOS</span>
   <h1>Nueva solicitud</h1>
-  <p>Completa los datos para registrar los materiales. Cada persona puede solicitar hasta 3 objetos.</p>
+  <p>Completa los datos para registrar los materiales. Cada persona puede solicitar hasta 3 objetos por 3 semanas.</p>
 </section>
 {% if not members %}
   <div class="notice">Aún no hay miembros registrados. <a href="{{ url_for('members') }}">Registra un miembro</a> antes de crear una solicitud.</div>
@@ -20,7 +20,7 @@
       </select>
     </label>
     <label class="field"><span>Correo para el recordatorio <b>*</b></span>
-      <input type="email" name="email" placeholder="nombre@colegio.cl" required>
+      <input type="email" name="email" placeholder="nombre{{ email_domain }}" required>
     </label>
   </div>
   <div class="form-section-title section-spaced"><span>02</span><div><h2>Materiales y devolución</h2><p>Selecciona entre 1 y 3 unidades en total.</p></div></div>
@@ -45,9 +45,9 @@
   </div>
   <div class="form-grid due-date-field">
     <label class="field"><span>Fecha de devolución <b>*</b></span>
-      <input type="date" name="due_date" min="{{ min_due_date }}" required>
+      <input type="date" name="due_date" min="{{ min_due_date }}" max="{{ max_due_date }}" required>
     </label>
-    <p class="field-hint">Enviaremos un recordatorio al correo indicado cuando se acerque esta fecha.</p>
+    <p class="field-hint">El préstamo dura hasta 3 semanas. Se enviará un recordatorio al correo institucional antes de la devolución.</p>
   </div>
   <div class="form-actions"><span class="required-note"><b>*</b> Campos obligatorios</span><button class="button button-primary" type="submit" {% if not members or not inventory %}disabled{% endif %}>Guardar solicitud <span aria-hidden="true">→</span></button></div>
 </form>

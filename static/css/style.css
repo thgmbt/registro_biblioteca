@@ -136,7 +136,24 @@ td strong { color: var(--ink); font-size: 10px; }
 .loan-card-main strong { font-size: 10px; overflow-wrap: anywhere; }
 .loan-card-main small { color: var(--muted); font-size: 9px; overflow-wrap: anywhere; }
 .overdue { color: #b84f40; }
-.return-form { display: flex; justify-content: flex-end; padding-top: 12px; border-top: 1px solid #f0f2ef; }
+.return-form { display: flex; justify-content: flex-end; gap: 9px; padding-top: 12px; border-top: 1px solid #f0f2ef; }
+.status-renewed { background: #fbf3dd; color: #947013; }
+.member-status { display: inline-flex; border-radius: 30px; padding: 5px 8px; background: #eaf3ed; color: var(--green); font-size: 9px; font-weight: 700; }
+.member-status-inactive { background: #edf0f3; color: #68737b; }
+.text-button { border: 0; padding: 3px 0; background: transparent; color: #a64f42; font-size: 9px; font-weight: 700; text-decoration: underline; cursor: pointer; white-space: nowrap; }
+.member-action-reactivate .text-button { color: var(--green); }
+.inventory-add { margin-bottom: 15px; padding: 0 18px; }
+.inventory-add summary { display: flex; align-items: center; gap: 12px; min-height: 68px; list-style: none; cursor: pointer; }
+.inventory-add summary::-webkit-details-marker { display: none; }
+.add-summary-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: var(--green-pale); color: var(--green); font-size: 19px; }
+.inventory-add summary strong, .inventory-add summary small { display: block; }
+.inventory-add summary strong { font-size: 11px; }
+.inventory-add summary small { margin-top: 4px; color: var(--muted); font-size: 9px; }
+.inventory-add-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding: 5px 0 19px; }
+.inventory-add-submit { align-self: end; }
+.inventory-filters { display: flex; gap: 8px; width: min(470px, 55%); }
+.inventory-filters .table-search { width: 50%; }
+.category-filter { background: #fff; }
 .empty-panel { display: grid; justify-items: center; padding: 50px 20px; border: 1px dashed #d6e0d8; border-radius: 11px; background: #fff; text-align: center; }
 .empty-panel > span { color: #77a187; font-size: 29px; }
 .empty-panel h2 { margin: 12px 0 6px; font-size: 16px; }
@@ -145,7 +162,7 @@ td strong { color: var(--ink); font-size: 10px; }
 .flash { border-radius: 7px; padding: 11px 14px; font-size: 11px; }
 .flash-success { border: 1px solid #c9e2d0; background: #edf7ef; color: #286044; }
 .flash-error { border: 1px solid #f0d2cc; background: #fff1ee; color: #963c31; }
-.site-footer { display: flex; justify-content: space-between; gap: 12px; max-width: 1160px; width: 90%; margin: 0 auto; padding: 17px 0 23px; border-top: 1px solid var(--line); color: #89958d; font-size: 9px; }
+.site-footer { display: flex; justify-content: center; max-width: 1160px; width: 90%; margin: 0 auto; padding: 18px 0 24px; border-top: 1px solid var(--line); color: #89958d; font-size: 9px; text-align: center; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
 @media (max-width: 760px) {
@@ -167,6 +184,8 @@ td strong { color: var(--ink); font-size: 10px; }
   .action-card { min-height: 76px; }
   .action-card small { max-width: none; }
   .member-layout { grid-template-columns: 1fr; }
+  .inventory-add-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inventory-filters { width: 100%; }
   .heading-with-action { align-items: flex-start; }
 }
 @media (max-width: 520px) {
@@ -188,6 +207,8 @@ td strong { color: var(--ink); font-size: 10px; }
   .form-actions .button { width: 100%; }
   .table-toolbar { align-items: flex-start; flex-direction: column; }
   .table-search { width: 100%; }
+  .inventory-filters { flex-direction: column; }
+  .inventory-filters .table-search { width: 100%; }
   .table-scroll table, .table-scroll tbody, .table-scroll tr, .table-scroll td { display: block; width: 100%; }
   .table-scroll thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
   .table-scroll tbody { padding: 4px 14px; }
@@ -198,5 +219,8 @@ td strong { color: var(--ink); font-size: 10px; }
   .loan-card { padding: 15px; }
   .loan-card-main { grid-template-columns: 1fr; gap: 12px; }
   .loan-card-top { align-items: flex-start; flex-direction: column; }
+  .return-form { flex-direction: column; }
+  .return-form form, .return-form .button { width: 100%; }
   .site-footer { flex-direction: column; }
+  .inventory-add-form { grid-template-columns: 1fr; }
 }

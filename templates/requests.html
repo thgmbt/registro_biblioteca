@@ -8,17 +8,25 @@
 <section class="loan-list">
   {% for loan in loans %}
   <article class="loan-card">
-    <div class="loan-card-top"><div><span class="loan-number">SOLICITUD #{{ loan.id }}</span><span class="status-pill {% if loan.status == 'returned' %}status-returned{% endif %}">{% if loan.status == 'active' %}Activa{% else %}Devuelta{% endif %}</span></div><span class="loan-date">Registrada {{ loan.created_at[:10] }}</span></div>
+    <div class="loan-card-top"><div><span class="loan-number">SOLICITUD #{{ loan.id }}</span><span class="status-pill {% if loan.status == 'returned' %}status-returned{% endif %}">{% if loan.status == 'active' %}Activa{% else %}Devuelta{% endif %}</span>{% if loan.renewal_count %}<span class="status-pill status-renewed">Renovada</span>{% endif %}</div><span class="loan-date">Registrada {{ loan.created_at[:10] }}</span></div>
     <div class="loan-card-main">
       <div><span class="detail-label">SOLICITANTE</span><strong>{{ loan.member_name }}</strong><small>ID {{ loan.member_id }} · {{ loan.notification_email }}</small></div>
       <div><span class="detail-label">MATERIALES</span><strong>{{ loan.materials }}</strong></div>
       <div><span class="detail-label">DEVOLUCIÓN</span><strong class="{% if loan.status == 'active' and loan.due_date < today %}overdue{% endif %}">{{ loan.due_date }}</strong></div>
     </div>
     {% if loan.status == 'active' %}
-    <form method="post" action="{{ url_for('return_loan', loan_id=loan.id) }}" class="return-form" data-confirm="¿Marcar la solicitud #{{ loan.id }} como devuelta?">
-      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-      <button class="button button-outline" type="submit">Registrar devolución</button>
-    </form>
+    <div class="return-form">
+      {% if loan.renewal_count == 0 %}
+      <form method="post" action="{{ url_for('renew_loan', loan_id=loan.id) }}" data-confirm="¿Renovar esta solicitud por 3 semanas?">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <button class="button button-outline" type="submit">Renovar 3 semanas</button>
+      </form>
+      {% endif %}
+      <form method="post" action="{{ url_for('return_loan', loan_id=loan.id) }}" data-confirm="¿Marcar la solicitud #{{ loan.id }} como devuelta?">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <button class="button button-outline" type="submit">Registrar devolución</button>
+      </form>
+    </div>
     {% endif %}
   </article>
   {% else %}

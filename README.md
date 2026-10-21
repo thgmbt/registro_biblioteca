@@ -17,13 +17,16 @@ Abre `http://127.0.0.1:5000`. También puedes iniciar la aplicación con `py app
 
 ## Funciones
 
-- **Inventario:** lista de ejemplo con libros, equipos tecnológicos y material didáctico; muestra existencias totales y disponibles.
-- **Miembros:** registro de estudiantes, docentes y funcionarios. Los identificadores se asignan correlativamente desde `001`.
-- **Solicitudes:** exige ID de miembro, correo y fecha de devolución futura; permite entre 1 y 3 unidades por solicitud y evita prestar más unidades de las disponibles.
+- **Inventario:** lista de ejemplo con libros, equipos tecnológicos y material didáctico; permite agregar registros y filtrar por categoría o búsqueda.
+- **Miembros:** registro de estudiantes, docentes y funcionarios con correo `@colegiosanlorenzo.org`. Los identificadores se asignan correlativamente desde `001`. Dar de baja conserva el historial de préstamos y evita nuevos préstamos.
+- **Solicitudes:** exige ID de miembro activo, correo institucional y fecha de devolución futura; permite entre 1 y 3 unidades por solicitud y evita prestar más unidades de las disponibles. El plazo máximo es de tres semanas.
+- **Renovaciones:** cada préstamo activo puede renovarse una vez por otras tres semanas. Se reinicia el recordatorio de devolución al renovar.
 - **Devoluciones:** el staff puede marcar préstamos como devueltos para reponer disponibilidad.
 - **Recordatorios:** el comando `flask --app app send-reminders` envía recordatorios de préstamos con devolución dentro de los próximos dos días. Se puede ejecutar diariamente con el programador de tareas del sistema.
 
 Los 12 registros de `SEED_INVENTORY` en `app.py` son **datos ficticios de ejemplo**, no corresponden al stock de un colegio específico. Reemplázalos por los materiales reales antes de usar la aplicación. Los datos de ejemplo se insertan al crear la base de datos; no sobrescriben existencias ya guardadas.
+
+El dominio institucional se configura con `INSTITUTIONAL_EMAIL_DOMAIN` (por defecto `@colegiosanlorenzo.org`) si el colegio cambia de dominio. En instalaciones existentes, la aplicación añade automáticamente los campos de renovación y estado de miembro.
 
 ## Configurar correo para recordatorios
 
@@ -35,6 +38,7 @@ $env:MAIL_PORT = "587"
 $env:MAIL_USERNAME = "cuenta@example.cl"
 $env:MAIL_PASSWORD = "contraseña-de-aplicación"
 $env:MAIL_FROM = "Biblioteca <cuenta@example.cl>"
+$env:INSTITUTIONAL_EMAIL_DOMAIN = "@colegiosanlorenzo.org"
 flask --app app send-reminders --days 2
 ```
 

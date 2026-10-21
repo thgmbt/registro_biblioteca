@@ -1,0 +1,15 @@
+1. corregir la fecha, 3 semanas e implementar una opcion para renovar las solicitudes
+
+
+2. opcion para agregar inventario de manera mas eficiente
+
+
+3.v agregar una categoria de tipo de obejto para hacero mas eficiente al momento de buscar un obejto
+
+4. Que el correo sea institucional exclusivamente 
+
+5. que se puedan eliminar miembros, tipo en caso de despidos o ex alumnos
+
+6. mejorar el diseño
+
+7. añadir un footer con los desarrolladores de la pagina (Kevin Morales, Fernando Ibarra, Germán )
