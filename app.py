@@ -25,6 +25,7 @@ from flask import (
 )
 
 
+
 SEED_INVENTORY = (
     ("Cien años de soledad", "Libro", "Gabriel García Márquez / Editorial Diana", 5, "ejemplares"),
     ("La ciudad y los perros", "Libro", "Mario Vargas Llosa / Alfaguara", 4, "ejemplares"),
@@ -77,6 +78,12 @@ CREATE TABLE IF NOT EXISTS loan_items (
     PRIMARY KEY (loan_id, inventory_id)
 );
 """
+
+import os
+app = app = Flask(__name__)
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
 
 
 def connect_db() -> sqlite3.Connection:
